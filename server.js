@@ -1,5 +1,6 @@
+const mysql = require('mysql2');
+
 const express = require('express');
-const mysql = require('mysql');
 const nodemailer = require('nodemailer');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
@@ -11,6 +12,9 @@ const port = process.env.PORT || 3003;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+const cors = require('cors');
+app.use(cors());
 
 const db = mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',
@@ -36,14 +40,14 @@ const transporter = nodemailer.createTransport({
 });
 
 app.post('/submit', (req, res) => {
-  const { name, email, message } = req.body;
+  const { name, email, message_type, message } = req.body;
 
-  if (!name || !email || !message) {
+  if (!name || !email || !message_type || !message) {
     return res.status(400).send('All fields are required.');
   }
 
-  const sql = 'INSERT INTO form_submissions (name, email, message) VALUES (?, ?, ?)';
-  db.query(sql, [name, email, message], (err, result) => {
+  const sql = 'INSERT INTO form_submissions (name, email, message_type, message) VALUES (?, ?, ?, ?)';
+  db.query(sql, [name, email, message_type, message], (err, result) => {
     if (err) {
       console.error('Error inserting data:', err.stack);
       return res.status(500).send('Database error.');
@@ -53,15 +57,15 @@ app.post('/submit', (req, res) => {
       from: process.env.EMAIL_USER,
       to: process.env.EMAIL_USER,
       subject: 'New Form Submission',
-      text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`
+      text: `Name: ${name}\nEmail: ${email}\nMessage Type: ${message_type}\nMessage: ${message}`
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('Error sending email:', error);
-        return res.status(500).send('Email error.');
-      }
-      res.status(200).send('Form submitted successfully.');
+        if (error) {
+          console.error('Error sending email:', error);
+          return res.status(500).send(`Email error: ${error.message}`);
+        }
+        res.status(200).send('Form submitted successfully.');
     });
   });
 });
