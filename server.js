@@ -16,6 +16,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const cors = require('cors');
 app.use(cors());
 
+app.get('/', (req, res)=>{
+  res.status(200);
+  res.send("This is from root");
+});
+
 const db = mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'joseph',
